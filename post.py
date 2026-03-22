@@ -16,15 +16,14 @@ import textwrap
 
 import requests
 import feedparser
-import google.generativeai as genai
+from google import genai
 from PIL import Image, ImageDraw, ImageFont
 
 # ── Config ────────────────────────────────────────────────────────────────────
 GEMINI_KEY   = os.environ["GEMINI_API_KEY"]
 MAKE_WEBHOOK = os.environ["MAKE_WEBHOOK_URL"]   # from Make.com scenario
 
-genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = genai.Client(api_key=GEMINI_KEY)
 
 RSS_FEEDS = [
     "https://techcrunch.com/category/artificial-intelligence/feed/",
@@ -79,7 +78,7 @@ Return ONLY valid JSON, no markdown:
   "image_headline": "short headline for image"
 }}"""
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model='gemini-2.0-flash', contents=prompt)
     raw = response.text.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
