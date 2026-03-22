@@ -16,14 +16,11 @@ import textwrap
 
 import requests
 import feedparser
-from google import genai
 from PIL import Image, ImageDraw, ImageFont
 
 # ── Config ────────────────────────────────────────────────────────────────────
-GEMINI_KEY   = os.environ["GEMINI_API_KEY"]
-MAKE_WEBHOOK = os.environ["MAKE_WEBHOOK_URL"]   # from Make.com scenario
-
-client = genai.Client(api_key=GEMINI_KEY)
+OPENROUTER_KEY = os.environ["OPENROUTER_API_KEY"]
+MAKE_WEBHOOK   = os.environ["MAKE_WEBHOOK_URL"]
 
 RSS_FEEDS = [
     "https://techcrunch.com/category/artificial-intelligence/feed/",
@@ -72,14 +69,26 @@ Length: 150-250 words.
 
 Also pick ONE short headline (max 8 words) from the biggest story for the image.
 
-Return ONLY valid JSON, no markdown:
+Return ONLY valid JSON, no markdown fences:
 {{
   "post_text": "full LinkedIn post here",
   "image_headline": "short headline for image"
 }}"""
 
-    response = client.models.generate_content(model='gemini-1.5-flash-8b', contents=prompt)
-    raw = response.text.strip()
+    resp = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENROUTER_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "openrouter/free",
+            "messages": [{"role": "user", "content": prompt}],
+        },
+        timeout=60,
+    )
+    resp.raise_for_status()
+    raw = resp.json()["choices"][0]["message"]["content"].strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
@@ -171,7 +180,7 @@ def main():
     news = fetch_news()
     print(f"   Got {len(news.splitlines())} headlines\n")
 
-    print("✍️  Generating post with Gemini...")
+    print("✍️  Generating post with OpenRouter (free)...")
     result = generate_post(news)
     print("\n── POST PREVIEW ──────────────────────────")
     print(result["post_text"])
