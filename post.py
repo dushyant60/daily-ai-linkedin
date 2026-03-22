@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw, ImageFont
 # ── Config ────────────────────────────────────────────────────────────────────
 OPENROUTER_KEY = os.environ["OPENROUTER_API_KEY"]
 MAKE_WEBHOOK   = os.environ["MAKE_WEBHOOK_URL"]
-UNSPLASH_KEY   = os.environ["UNSPLASH_ACCESS_KEY"]   # free at unsplash.com/developers
+UNSPLASH_KEY   = os.environ["UNSPLASH_API_KEY"]   # free at unsplash.com/developers
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
