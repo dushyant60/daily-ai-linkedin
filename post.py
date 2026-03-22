@@ -19,7 +19,7 @@ import feedparser
 from PIL import Image, ImageDraw, ImageFont
 
 # ── Config ────────────────────────────────────────────────────────────────────
-OPENROUTER_KEY = os.environ["OPENROUTER_KEY"]
+OPENROUTER_KEY = os.environ["OPENROUTER_API_KEY"]
 MAKE_WEBHOOK   = os.environ["MAKE_WEBHOOK_URL"]
 
 RSS_FEEDS = [

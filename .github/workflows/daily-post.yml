@@ -23,6 +23,6 @@ jobs:
 
       - name: Generate and post
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
         run: python post.py
