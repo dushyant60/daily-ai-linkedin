@@ -78,7 +78,7 @@ Return ONLY valid JSON, no markdown:
   "image_headline": "short headline for image"
 }}"""
 
-    response = client.models.generate_content(model='gemini-2.0-flash', contents=prompt)
+    response = client.models.generate_content(model='gemini-1.5-flash-8b', contents=prompt)
     raw = response.text.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
