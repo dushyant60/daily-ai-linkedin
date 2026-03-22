@@ -16,11 +16,17 @@ import textwrap
 
 import requests
 import feedparser
+from openai import OpenAI
 from PIL import Image, ImageDraw, ImageFont
 
 # ── Config ────────────────────────────────────────────────────────────────────
 OPENROUTER_KEY = os.environ["OPENROUTER_API_KEY"]
 MAKE_WEBHOOK   = os.environ["MAKE_WEBHOOK_URL"]
+
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_KEY,
+)
 
 RSS_FEEDS = [
     "https://techcrunch.com/category/artificial-intelligence/feed/",
@@ -75,20 +81,12 @@ Return ONLY valid JSON, no markdown fences:
   "image_headline": "short headline for image"
 }}"""
 
-    resp = requests.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {OPENROUTER_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": "openrouter/free",
-            "messages": [{"role": "user", "content": prompt}],
-        },
-        timeout=60,
+    response = client.chat.completions.create(
+        model="openrouter/free",
+        messages=[{"role": "user", "content": prompt}],
+        extra_body={"reasoning": {"enabled": True}}
     )
-    resp.raise_for_status()
-    raw = resp.json()["choices"][0]["message"]["content"].strip()
+    raw = response.choices[0].message.content.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
