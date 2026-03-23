@@ -1,13 +1,5 @@
 """
 Daily AI LinkedIn Post — Make.com Edition (100% Free)
-=====================================================
-Flow:
-  1. Parse RSS feeds for today's AI news  (free, no key)
-  2. Generate post with OpenRouter        (free tier)
-  3. Fetch relevant image from Unsplash   (free API)
-  4. Upload image to imgbb                (free, returns public URL)
-  5. Send post_text + image_url to Make.com webhook
-  6. Make.com posts image + text to LinkedIn
 """
 
 import os, json, re, base64
@@ -38,6 +30,20 @@ RSS_FEEDS = [
     "https://www.theregister.com/software/ai_ml/headlines.atom",
 ]
 
+# ── Safety: block these topics from ever being posted ────────────────────────
+BLOCKED_KEYWORDS = [
+    "adult", "nsfw", "porn", "nude", "sex", "violence", "hack", "malware", "terror", "suicide", "self-harm",
+    "racist", "discrimination", "hate speech",
+]
+
+def is_safe(text: str) -> bool:
+    text_lower = text.lower()
+    for word in BLOCKED_KEYWORDS:
+        if word in text_lower:
+            print(f"🚫 SAFETY BLOCK: post contains '{word}' — aborting!")
+            return False
+    return True
+
 
 def fetch_news() -> str:
     items = []
@@ -56,38 +62,46 @@ def fetch_news() -> str:
 
 def generate_post(news: str) -> dict:
     today = datetime.now().strftime("%A, %B %d, %Y")
-    prompt = f"""You are a top LinkedIn thought leader in AI with 100k+ followers.
+    prompt = f"""You are a professional LinkedIn thought leader in AI.
 Today is {today}.
 
-Here are today's verified AI news headlines:
+Here are today's AI news headlines:
 {news}
 
-Your task: Write a LinkedIn post that stops people mid-scroll.
+STRICT CONTENT RULES:
+- Only use facts from the headlines — never invent details
+- Keep content 100% professional — no sensitive, political, adult, or controversial content
+- Only post about AI technology, research, products, and business
 
-STRICT RULES:
-- Only use facts from the headlines above — never invent or assume details
+Write a LinkedIn post with PROPER LINE BREAKS using actual newlines.
 
-POST FORMAT:
-Line 1: Bold surprising hook — one sentence. Do NOT start with "🤖 Today in AI"
-Line 2: Empty line
-Line 3: "🤖 Today in AI — {today}"
-Line 4: Empty line
-Then 3-4 stories:
-[emoji] *HEADLINE IN CAPS*
-One punchy sentence what happened. One sentence why it matters personally.
+FORMAT (use real blank lines between each section):
 
-Emojis: 🔬 research  🚀 launches  💰 funding  💡 insights
+[Hook sentence — surprising fact or question. NOT starting with 🤖]
 
-Empty line then closing question: "What do YOU think..." or "Are you already using..."
-Final line: 6-8 hashtags #AI #ArtificialIntelligence #MachineLearning #TechNews + specific ones
+🤖 Today in AI — {today}
 
-TONE: Smart friend texting breaking news. Short sentences. High energy. No fluff.
+🔬 or 🚀 or 💰 or 💡 *STORY HEADLINE IN CAPS*
+One sentence what happened. One sentence why it matters.
 
-Also pick ONE visual keyword for Unsplash photo (e.g. "robot", "microchip", "data center").
+🔬 or 🚀 or 💰 or 💡 *STORY HEADLINE IN CAPS*
+One sentence what happened. One sentence why it matters.
 
-Return ONLY valid JSON, no markdown:
+🔬 or 🚀 or 💰 or 💡 *STORY HEADLINE IN CAPS*
+One sentence what happened. One sentence why it matters.
+
+[Closing question to engage readers]
+
+#AI #ArtificialIntelligence #MachineLearning #TechNews [2-3 specific hashtags]
+
+IMPORTANT: Each section MUST be separated by a blank line. This is critical for LinkedIn formatting.
+TONE: Professional, engaging, informative. 150-250 words total.
+
+Also pick ONE visual keyword for photo search (e.g. "robot", "microchip", "data center").
+
+Return ONLY valid JSON, no markdown fences:
 {{
-  "post_text": "full LinkedIn post here",
+  "post_text": "full post with \\n\\n between each section",
   "image_search_term": "one keyword",
   "image_headline": "5-6 word overlay text"
 }}"""
@@ -101,11 +115,15 @@ Return ONLY valid JSON, no markdown:
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
-    return json.loads(raw.strip())
+    data = json.loads(raw.strip())
+
+    # Ensure proper newlines (fix escaped \\n to real \n)
+    data["post_text"] = data["post_text"].replace("\\n", "\n")
+
+    return data
 
 
 def build_image(search_term: str, headline: str) -> bytes:
-    """Fetch Unsplash photo, add overlay, return PNG bytes."""
     img = None
     try:
         resp = requests.get(
@@ -128,7 +146,6 @@ def build_image(search_term: str, headline: str) -> bytes:
     if img is None:
         img = _fallback(headline)
 
-    # Overlay
     overlay = Image.new("RGBA", (1200, 628), (0, 0, 0, 0))
     d = ImageDraw.Draw(overlay)
     for y in range(448, 628):
@@ -157,13 +174,13 @@ def build_image(search_term: str, headline: str) -> bytes:
 
 def _fallback(headline: str) -> Image.Image:
     themes = [
-        ((15,23,42),   (99,102,241),  (248,250,252)),
-        ((5,46,22),    (34,197,94),   (240,253,244)),
-        ((30,27,75),   (167,139,250), (245,243,255)),
-        ((12,10,9),    (251,146,60),  (255,247,237)),
-        ((8,47,73),    (56,189,248),  (240,249,255)),
-        ((49,10,10),   (248,113,113), (255,241,242)),
-        ((31,41,55),   (251,191,36),  (255,251,235)),
+        ((15,23,42),  (99,102,241),  (248,250,252)),
+        ((5,46,22),   (34,197,94),   (240,253,244)),
+        ((30,27,75),  (167,139,250), (245,243,255)),
+        ((12,10,9),   (251,146,60),  (255,247,237)),
+        ((8,47,73),   (56,189,248),  (240,249,255)),
+        ((49,10,10),  (248,113,113), (255,241,242)),
+        ((31,41,55),  (251,191,36),  (255,251,235)),
     ]
     bg, ac, tx = themes[datetime.now().weekday()]
     img  = Image.new("RGB", (1200, 628), bg)
@@ -179,7 +196,6 @@ def _fallback(headline: str) -> Image.Image:
 
 
 def upload_to_imgbb(image_bytes: bytes) -> str:
-    """Upload image to imgbb, return public URL."""
     resp = requests.post(
         "https://api.imgbb.com/1/upload",
         data={
@@ -191,12 +207,11 @@ def upload_to_imgbb(image_bytes: bytes) -> str:
     )
     resp.raise_for_status()
     url = resp.json()["data"]["url"]
-    print(f"   Image uploaded to imgbb ✅ {url}")
+    print(f"   Uploaded ✅ {url}")
     return url
 
 
 def send_to_make(post_text: str, image_url: str):
-    """Send post text + image URL to Make.com webhook."""
     resp = requests.post(
         MAKE_WEBHOOK,
         json={"post_text": post_text, "image_url": image_url},
@@ -214,12 +229,20 @@ def main():
 
     print("✍️  Generating post...")
     result = generate_post(news)
+
+    # ── Safety check before posting anything ─────────────────────────────────
+    print("🛡️  Running safety check...")
+    if not is_safe(result["post_text"]):
+        print("❌ Post failed safety check. Nothing posted. Check logs.")
+        return
+    print("   Content is safe ✅\n")
+
     print("\n── POST PREVIEW ──────────────────────────")
     print(result["post_text"])
     print(f"\n── IMAGE: {result['image_search_term']} → {result['image_headline']}")
     print("──────────────────────────────────────────\n")
 
-    print(f"🖼️  Building image...")
+    print("🖼️  Building image...")
     image_bytes = build_image(result["image_search_term"], result["image_headline"])
     print(f"   {len(image_bytes)//1024} KB\n")
 
