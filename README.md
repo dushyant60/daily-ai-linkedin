@@ -177,4 +177,4 @@ This project is open source. Feel free to use and modify.
 
 ---
 
-**Made with ❤️ for the AI community**
+**Made with ❤️ by Dushyant**
