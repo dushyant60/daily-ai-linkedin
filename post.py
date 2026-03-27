@@ -120,7 +120,6 @@ Return ONLY valid JSON, no markdown fences:
     response = client.chat.completions.create(
         model="openrouter/free",
         messages=[{"role": "user", "content": prompt}],
-        extra_body={"reasoning": {"enabled": True}}
     )
     raw = response.choices[0].message.content.strip()
     if not raw:
