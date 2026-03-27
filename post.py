@@ -74,47 +74,74 @@ def fetch_news() -> str:
 # ── Step 2: Generate post text with OpenRouter ───────────────────────────────
 def generate_post(news: str) -> dict:
     today = datetime.now().strftime("%A, %B %d, %Y")
-    prompt = f"""You are an expert LinkedIn content creator focused on AI.
+    prompt = f"""You are a sharp, opinionated LinkedIn creator who covers AI daily.
+You write like a knowledgeable friend — clear, punchy, with a real point of view.
 Today is {today}.
 
-Here are today's AI news headlines:
+Here are today's AI headlines:
 {news}
 
-Write a LinkedIn post with PROPER LINE BREAKS. Each section must be separated by a blank line.
+Your job is to write a LinkedIn post that people actually stop scrolling for.
 
-FORMAT:
-[Hook sentence — one surprising fact or question. Do NOT start with 🤖]
+━━━ STRICT FORMAT (copy this exactly, including blank lines) ━━━
+
+[HOOK — one punchy sentence. A surprising stat, a bold claim, or a provocative question.
+Never start with "🤖". Never start with "I". Make it impossible to ignore.]
 
 🤖 Today in AI — {today}
 
-🔬 or 🚀 or 💰 or 💡 *STORY HEADLINE IN CAPS*
-One sentence what happened. One sentence why it matters.
+[EMOJI] [STORY 1 HEADLINE IN CAPS — max 8 words]
+What happened in one crisp sentence. Why it's a big deal in one more — be specific, use numbers or names if available.
 
-🔬 or 🚀 or 💰 or 💡 *STORY HEADLINE IN CAPS*
-One sentence what happened. One sentence why it matters.
+[EMOJI] [STORY 2 HEADLINE IN CAPS — max 8 words]
+What happened in one crisp sentence. Why it's a big deal in one more — be specific, use numbers or names if available.
 
-🔬 or 🚀 or 💰 or 💡 *STORY HEADLINE IN CAPS*
-One sentence what happened. One sentence why it matters.
+[EMOJI] [STORY 3 HEADLINE IN CAPS — max 8 words]
+What happened in one crisp sentence. Why it's a big deal in one more — be specific, use numbers or names if available.
 
-[One closing question to engage readers]
+[CLOSING — one specific, opinionated question or hot take that sparks debate.
+NOT "share your thoughts". Make it feel like something a real person would ask.]
 
-#AI #ArtificialIntelligence #MachineLearning #TechNews [2-3 specific hashtags]
+#AI #ArtificialIntelligence #MachineLearning #TechNews [2 more specific hashtags]
 
-RULES:
-- Only use facts from the headlines — never invent details
-- Keep content 100% professional — AI technology only
-- IMPORTANT: use \\n\\n between every section for proper LinkedIn formatting
-- Tone: conversational, engaging, like a knowledgeable friend
-- Length: 150-250 words
+━━━ RULES — follow every single one ━━━
+
+FORMATTING:
+- Every single section MUST be separated by a blank line (\\n\\n)
+- The hook must be its own paragraph, alone, before the 🤖 header
+- Hashtags must have a blank line before them
+- Do NOT use "It matters because" or "Why it matters:" — weave the significance naturally
+
+CONTENT QUALITY:
+- NEVER invent model names, version numbers, company names, or statistics
+- Only use facts directly stated in the headlines provided
+- If a headline is vague, write a vague story — do not fill gaps with guesses
+- Each story = exactly 2 sentences. No more, no less.
+- Pick the 3 most interesting/surprising stories — not just the first 3
+
+TONE:
+- Write like Dushyant Singh, a sharp AI builder who has opinions
+- Conversational but intelligent — not corporate, not robotic
+- The hook and closing should feel human, not AI-generated
+
+EMOJI GUIDE (pick the best fit per story):
+🔬 research / model releases
+🚀 product launches / new features
+💰 funding / business moves
+⚖️ policy / legal / regulation
+🤝 partnerships / acquisitions
+💡 interesting insight or trend
+
+━━━ OUTPUT ━━━
 
 Also pick THREE specific Unsplash search phrases from the biggest story.
 Be concrete and visual — not "AI" or "technology" but things like
-"OpenAI office San Francisco", "Nvidia GPU chip closeup", "self driving car street".
-Order them from most specific to least specific.
+"OpenAI office San Francisco", "Nvidia GPU chip closeup", "courtroom gavel law".
+Order from most specific to least specific.
 
 Return ONLY valid JSON, no markdown fences:
 {{
-  "post_text": "full post with \\n\\n between each section",
+  "post_text": "full post with \\n\\n between every section",
   "image_headline": "short 5-6 word headline for image overlay",
   "image_search_terms": ["most specific phrase", "medium phrase", "broad fallback phrase"]
 }}"""
