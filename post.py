@@ -4,7 +4,7 @@ Daily AI LinkedIn Post — Make.com Edition (100% Free)
 Flow:
   1. Parse RSS feeds for today's AI news  (free, no key)
   2. Generate post with OpenRouter        (free tier)
-  3. Fetch relevant image from Unsplash   (free API)
+  3. Fetch relevant image from Unsplash   (free API, smarter search)
   4. Upload image to imgbb                (free, returns public URL)
   5. Send post_text + image_url to Make.com webhook
   6. Make.com posts image + text to LinkedIn
@@ -107,14 +107,16 @@ RULES:
 - Tone: conversational, engaging, like a knowledgeable friend
 - Length: 150-250 words
 
-Also pick ONE visual keyword from the biggest story for Unsplash photo search
-(e.g. "robot", "microchip", "data center", "neural network").
+Also pick THREE specific Unsplash search phrases from the biggest story.
+Be concrete and visual — not "AI" or "technology" but things like
+"OpenAI office San Francisco", "Nvidia GPU chip closeup", "self driving car street".
+Order them from most specific to least specific.
 
 Return ONLY valid JSON, no markdown fences:
 {{
   "post_text": "full post with \\n\\n between each section",
   "image_headline": "short 5-6 word headline for image overlay",
-  "image_search_term": "one visual keyword"
+  "image_search_terms": ["most specific phrase", "medium phrase", "broad fallback phrase"]
 }}"""
 
     response = client.chat.completions.create(
@@ -137,34 +139,40 @@ Return ONLY valid JSON, no markdown fences:
 
 
 # ── Step 3: Fetch Unsplash photo + overlay branding ──────────────────────────
-def build_image(search_term: str, headline: str) -> bytes:
-    """Fetch Unsplash photo, add overlay, return PNG bytes."""
+def build_image(search_terms: list[str], headline: str) -> bytes:
+    """Try each search term in order until Unsplash returns a good result."""
     img = None
 
-    try:
-        resp = requests.get(
-            "https://api.unsplash.com/search/photos",
-            params={
-                "query": f"{search_term} technology",
-                "orientation": "landscape",
-                "per_page": 3,
-            },
-            headers={"Authorization": f"Client-ID {UNSPLASH_KEY}"},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        results = resp.json().get("results", [])
-        if results:
-            img_resp = requests.get(results[0]["urls"]["regular"], timeout=20)
-            img_resp.raise_for_status()
-            img = Image.open(BytesIO(img_resp.content)).convert("RGB")
-            img = img.resize((1200, 628), Image.LANCZOS)
-            print("   Unsplash photo fetched ✅")
-    except Exception as e:
-        print(f"   Unsplash failed ({e}), using fallback graphic")
+    for term in search_terms:
+        try:
+            print(f"   Trying Unsplash: '{term}'...")
+            resp = requests.get(
+                "https://api.unsplash.com/search/photos",
+                params={
+                    "query": term,
+                    "orientation": "landscape",
+                    "per_page": 3,
+                    "content_filter": "high",
+                },
+                headers={"Authorization": f"Client-ID {UNSPLASH_KEY}"},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            results = resp.json().get("results", [])
+            if results:
+                img_resp = requests.get(results[0]["urls"]["regular"], timeout=20)
+                img_resp.raise_for_status()
+                img = Image.open(BytesIO(img_resp.content)).convert("RGB")
+                img = img.resize((1200, 628), Image.LANCZOS)
+                print(f"   ✅ Got image for: '{term}'")
+                break  # stop as soon as we get a hit
+        except Exception as e:
+            print(f"   ❌ Failed for '{term}': {e}")
+            continue
 
     # Fallback: clean dark branded graphic
     if img is None:
+        print("   All terms failed, using fallback graphic")
         img = _fallback_graphic(headline)
         buf = BytesIO()
         img.save(buf, format="PNG", optimize=True)
@@ -285,11 +293,11 @@ def main():
 
     print("\n── POST PREVIEW ──────────────────────────")
     print(result["post_text"])
-    print(f"\n── IMAGE: {result['image_search_term']} → {result['image_headline']}")
+    print(f"\n── IMAGE TERMS: {result['image_search_terms']} → {result['image_headline']}")
     print("──────────────────────────────────────────\n")
 
-    print(f"🖼️  Fetching image: '{result['image_search_term']}'...")
-    image_bytes = build_image(result["image_search_term"], result["image_headline"])
+    print(f"🖼️  Fetching image (trying {len(result['image_search_terms'])} terms)...")
+    image_bytes = build_image(result["image_search_terms"], result["image_headline"])
     print(f"   {len(image_bytes)//1024} KB\n")
 
     print("☁️  Uploading to imgbb...")
