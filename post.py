@@ -59,96 +59,90 @@ def fetch_news() -> str:
 # ── Step 2: Generate post text with OpenRouter ───────────────────────────────
 def generate_post(news: str) -> dict:
     today = datetime.now().strftime("%A, %B %d, %Y")
-    prompt = f"""You are a sharp, opinionated LinkedIn creator who covers AI daily.
-You write like a knowledgeable friend — clear, punchy, with a real point of view.
-Today is {today}.
-
-Here are today's AI headlines:
-{news}
-
-Your job is to write a LinkedIn post that people actually stop scrolling for.
-
-━━━ STRICT FORMAT (copy this exactly, including blank lines) ━━━
-
-[HOOK — one punchy sentence. A surprising stat, a bold claim, or a provocative question.
-Never start with "🤖". Never start with "I". Make it impossible to ignore.]
-
-🤖 Today in AI — {today}
-
-[EMOJI] [STORY 1 HEADLINE IN CAPS — max 8 words]
-What happened in one crisp sentence. Why it's a big deal in one more — be specific, use numbers or names if available.
-
-[EMOJI] [STORY 2 HEADLINE IN CAPS — max 8 words]
-What happened in one crisp sentence. Why it's a big deal in one more — be specific, use numbers or names if available.
-
-[EMOJI] [STORY 3 HEADLINE IN CAPS — max 8 words]
-What happened in one crisp sentence. Why it's a big deal in one more — be specific, use numbers or names if available.
-
-[CLOSING — one specific, opinionated question or hot take that sparks debate.
-NOT "share your thoughts". Make it feel like something a real person would ask.]
-
-#AI #ArtificialIntelligence #MachineLearning #TechNews [2 more specific hashtags]
-
-━━━ RULES — follow every single one ━━━
-
-FORMATTING:
-- Every single section MUST be separated by a blank line (\\n\\n)
-- The hook must be its own paragraph, alone, before the 🤖 header
-- Hashtags must have a blank line before them
-- Do NOT use "It matters because" or "Why it matters:" — weave the significance naturally
-
-CONTENT QUALITY:
-- NEVER invent model names, version numbers, company names, or statistics
-- Only use facts directly stated in the headlines provided
-- If a headline is vague, write a vague story — do not fill gaps with guesses
-- Each story = exactly 2 sentences. No more, no less.
-- Pick the 3 most interesting/surprising stories — not just the first 3
-
-TONE:
-- Write like Dushyant Singh, a sharp AI builder who has opinions
-- Conversational but intelligent — not corporate, not robotic
-- The hook and closing should feel human, not AI-generated
-
-EMOJI GUIDE (pick the best fit per story):
-🔬 research / model releases
-🚀 product launches / new features
-💰 funding / business moves
-⚖️ policy / legal / regulation
-🤝 partnerships / acquisitions
-💡 interesting insight or trend
-
-━━━ OUTPUT ━━━
-
-Also pick THREE specific Unsplash search phrases from the biggest story.
-Be concrete and visual — not "AI" or "technology" but things like
-"OpenAI office San Francisco", "Nvidia GPU chip closeup", "courtroom gavel law".
-Order from most specific to least specific.
-
-Return ONLY valid JSON, no markdown fences:
-{{
-  "post_text": "full post with \\n\\n between every section",
-  "image_headline": "short 5-6 word headline for image overlay",
-  "image_search_terms": ["most specific phrase", "medium phrase", "broad fallback phrase"]
-}}"""
-
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages=[{"role": "user", "content": prompt}],
+    prompt = (
+        f"You are a sharp, opinionated LinkedIn creator who covers AI daily.\n"
+        f"You write like a knowledgeable friend — clear, punchy, with a real point of view.\n"
+        f"Today is {today}.\n\n"
+        f"Here are today's AI headlines:\n{news}\n\n"
+        "Return ONLY a valid JSON object — no markdown, no explanation, just JSON.\n\n"
+        "Rules:\n"
+        "- NEVER invent model names, version numbers, company names, or statistics not in the headlines\n"
+        "- Do NOT use \"It matters because\" or \"Why it matters:\" — weave significance naturally\n"
+        "- Each story body = exactly 2 sentences\n"
+        "- Pick the 3 most interesting stories, not just the first 3\n"
+        "- hook: one punchy sentence — bold claim, surprising stat, or provocative question. Do NOT start with \"I\" or emoji\n"
+        "- closing: one opinionated question or hot take. NOT \"share your thoughts\"\n"
+        "- Emoji per story — pick best fit: research/models=, launches/features=, funding/business=, policy/legal=, partnerships=, trends=\n"
+        "- image_search_terms: three specific Unsplash phrases from the biggest story, ordered most-to-least specific\n\n"
+        "JSON schema (return exactly this structure):\n"
+        "{\n"
+        "  \"hook\": \"one punchy hook sentence\",\n"
+        "  \"stories\": [\n"
+        "    {\"emoji\": \"X\", \"headline\": \"HEADLINE IN CAPS MAX 8 WORDS\", \"body\": \"Sentence 1. Sentence 2.\"},\n"
+        "    {\"emoji\": \"X\", \"headline\": \"HEADLINE IN CAPS MAX 8 WORDS\", \"body\": \"Sentence 1. Sentence 2.\"},\n"
+        "    {\"emoji\": \"X\", \"headline\": \"HEADLINE IN CAPS MAX 8 WORDS\", \"body\": \"Sentence 1. Sentence 2.\"}\"\n"
+        "  ],\n"
+        "  \"closing\": \"opinionated closing question or hot take\",\n"
+        "  \"hashtags\": \"#AI #ArtificialIntelligence #MachineLearning #TechNews #Specific1 #Specific2\",\n"
+        "  \"image_headline\": \"5-6 word image overlay headline\",\n"
+        "  \"image_search_terms\": [\"specific phrase\", \"medium phrase\", \"broad fallback\"]\n"
+        "}"
     )
-    raw = response.choices[0].message.content.strip()
-    if not raw:
-        raise ValueError("AI returned empty response — re-run the workflow to retry")
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    data = json.loads(raw.strip())
 
-    # Ensure real newlines (fix escaped \\n to actual \n)
-    data["post_text"] = data["post_text"].replace("\\n", "\n")
+    for attempt in range(1, 4):
+        try:
+            print(f"   Attempt {attempt}/3...")
+            response = client.chat.completions.create(
+                model="openrouter/free",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            raw = response.choices[0].message.content.strip()
+            if not raw:
+                raise ValueError("Empty response from model")
 
-    return data
+            # Strip markdown fences if present
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            raw = raw.strip()
 
+            data = json.loads(raw)
+
+            # Validate all required keys are present and non-empty
+            for key in ["hook", "stories", "closing", "hashtags", "image_headline", "image_search_terms"]:
+                if not data.get(key):
+                    raise ValueError(f"Missing or empty field: '{key}'")
+            if len(data["stories"]) < 3:
+                raise ValueError(f"Only {len(data['stories'])} stories returned, need 3")
+            for i, s in enumerate(data["stories"]):
+                if not s.get("headline") or not s.get("body"):
+                    raise ValueError(f"Story {i+1} is incomplete")
+
+            # Assemble post_text from structured fields
+            lines = [
+                data["hook"],
+                "",
+                f"\U0001f916 Today in AI \u2014 {today}",
+            ]
+            for story in data["stories"]:
+                lines.append("")
+                lines.append(f"{story['emoji']} {story['headline']}")
+                lines.append(story["body"])
+            lines.append("")
+            lines.append(data["closing"])
+            lines.append("")
+            lines.append(data["hashtags"])
+            data["post_text"] = "\n".join(lines)
+
+            print(f"   Post generated successfully")
+            return data
+
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            print(f"   Attempt {attempt} failed: {e}")
+            if attempt == 3:
+                raise RuntimeError("All 3 attempts failed — check your OpenRouter quota or try again later")
+            continue
 
 # ── Step 3: Fetch Unsplash photo + overlay branding ──────────────────────────
 def build_image(search_terms: list[str], headline: str) -> bytes:
