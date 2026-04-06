@@ -39,21 +39,6 @@ RSS_FEEDS = [
     "https://www.theregister.com/software/ai_ml/headlines.atom",
 ]
 
-# ── Safety guardrails ─────────────────────────────────────────────────────────
-BLOCKED_KEYWORDS = [
-    "adult", "explicit", "nsfw", "porn", "nude", "sex", "violence",
-    "weapon", "drug", "hack", "malware", "terror", "suicide", "self-harm",
-    "racist", "discrimination", "hate speech",
-]
-
-def is_safe(text: str) -> bool:
-    text_lower = text.lower()
-    for word in BLOCKED_KEYWORDS:
-        if word in text_lower:
-            print(f"🚫 SAFETY BLOCK: post contains '{word}' — aborting!")
-            return False
-    return True
-
 
 # ── Step 1: Fetch AI news from RSS ───────────────────────────────────────────
 def fetch_news() -> str:
@@ -310,13 +295,6 @@ def main():
 
     print("✍️  Generating post with OpenRouter (free)...")
     result = generate_post(news)
-
-    # Safety check before posting anything
-    print("🛡️  Running safety check...")
-    if not is_safe(result["post_text"]):
-        print("❌ Post blocked by safety filter. Nothing posted.")
-        return
-    print("   Safe ✅\n")
 
     print("\n── POST PREVIEW ──────────────────────────")
     print(result["post_text"])
